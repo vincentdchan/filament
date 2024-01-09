@@ -31,6 +31,21 @@ namespace filament::geometry {
 using namespace filament::math;
 using Algorithm = TangentSpaceMesh::Algorithm;
 
+// Defines the actual implementation used to compute the TBN, where as TangentSpaceMesh::Algorithm
+// is a hint that the client can provide.
+enum class AlgorithmImpl : uint8_t {
+    INVALID = 0,
+
+    MIKKTSPACE = 1,
+    LENGYEL = 2,
+    HUGHES_MOLLER = 3,
+    FRISVAD = 4,
+
+    // Generating flat shading will remesh the input
+    FLAT_SHADING = 5,
+    TANGENTS_PROVIDED = 6,
+};
+
 template<typename T>
 class InternalArray {
 public:
@@ -68,19 +83,21 @@ struct TangentSpaceMeshInput {
     float3 const* normals = nullptr;
     float2 const* uvs = nullptr;
     float3 const* positions = nullptr;
+    float4 const* tangents = nullptr;
     ushort3 const* triangles16 = nullptr;
     uint3 const* triangles32 = nullptr;
 
     size_t normalStride = 0;
     size_t uvStride = 0;
     size_t positionStride = 0;
+    size_t tangentStride = 0;
     size_t triangleCount = 0;
 
     Algorithm algorithm;
 };
 
 struct TangentSpaceMeshOutput {
-    Algorithm algorithm;
+    AlgorithmImpl algorithm;
 
     size_t triangleCount = 0;
     size_t vertexCount = 0;

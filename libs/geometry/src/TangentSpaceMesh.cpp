@@ -31,21 +31,23 @@ namespace filament {
 namespace geometry {
 
 using namespace filament::math;
-using Builder = TangentSpaceMesh::Builder;
-using Algorithm = TangentSpaceMesh::Algorithm;
-using MethodPtr = void(*)(TangentSpaceMeshInput const*, TangentSpaceMeshOutput*);
 
 namespace {
 
-uint8_t const NORMALS_BIT = 0x01;
-uint8_t const UVS_BIT = 0x02;
-uint8_t const POSITIONS_BIT = 0x04;
-uint8_t const INDICES_BIT = 0x08;
+using Builder = TangentSpaceMesh::Builder;
+using MethodPtr = void(*)(TangentSpaceMeshInput const*, TangentSpaceMeshOutput*);
+
+constexpr uint8_t const NORMALS_BIT = 0x01;
+constexpr uint8_t const UVS_BIT = 0x02;
+constexpr uint8_t const POSITIONS_BIT = 0x04;
+constexpr uint8_t const TANGENTS_BIT = 0x08;
+constexpr uint8_t const INDICES_BIT = 0x10;
 
 // Input types
-uint8_t const NORMALS = NORMALS_BIT;
-uint8_t const POSITIONS_INDICES = POSITIONS_BIT | INDICES_BIT;
-uint8_t const NORMALS_UVS_POSITIONS_INDICES = NORMALS_BIT | UVS_BIT | POSITIONS_BIT | INDICES_BIT;
+constexpr uint8_t const NORMALS = NORMALS_BIT;
+constexpr uint8_t const POSITIONS_INDICES = POSITIONS_BIT | INDICES_BIT;
+constexpr uint8_t const NORMALS_UVS_POSITIONS_INDICES = NORMALS_BIT | UVS_BIT | POSITIONS_BIT | INDICES_BIT;
+constexpr uint8_t const NORMALS_TANGENTS = NORMALS_BIT | TANGENTS_BIT;
 
 std::string_view to_string(Algorithm const algorithm) noexcept {
     switch (algorithm) {
@@ -59,8 +61,25 @@ std::string_view to_string(Algorithm const algorithm) noexcept {
             return "HUGHES_MOLLER";
         case Algorithm::FRISVAD:
             return "FRISVAD";
-        case Algorithm::FLAT_SHADING:
+    }
+}
+
+std::string_view to_string(AlgorithmImpl const algorithm) noexcept {
+    switch (algorithm) {
+        case AlgorithmImpl::INVALID:
+            return "INVALID";
+        case AlgorithmImpl::MIKKTSPACE:
+            return "MIKKTSPACE";
+        case AlgorithmImpl::LENGYEL:
+            return "LENGYEL";
+        case AlgorithmImpl::HUGHES_MOLLER:
+            return "HUGHES_MOLLER";
+        case AlgorithmImpl::FRISVAD:
+            return "FRISVAD";
+        case AlgorithmImpl::FLAT_SHADING:
             return "FLAT_SHADING";
+        case AlgorithmImpl::TANGENTS_PROVIDED:
+            return "TANGENTS_PROVIDED";
     }
 }
 
@@ -73,21 +92,34 @@ inline void takeStride(InputType*& out, size_t const stride) noexcept {
     out = pointerAdd(out, 1, stride);
 }
 
-inline Algorithm selectBestDefaultAlgorithm(uint8_t const inputType) {
-    Algorithm outAlgo;
+inline AlgorithmImpl selectBestDefaultAlgorithm(uint8_t const inputType) {
     if (isInputType(inputType, NORMALS_UVS_POSITIONS_INDICES)) {
-        outAlgo = Algorithm::MIKKTSPACE;
-    } else if (isInputType(inputType, POSITIONS_INDICES)) {
-        outAlgo = Algorithm::FLAT_SHADING;
+        return AlgorithmImpl::LENGYEL;
+    } else if (isInputType(inputType, NORMALS_TANGENTS)) {
+        return AlgorithmImpl::TANGENTS_PROVIDED;
     } else {
         ASSERT_PRECONDITION(inputType & NORMALS,
                 "Must at least have normals or (positions + indices) as input");
-        outAlgo = Algorithm::FRISVAD;
+        return AlgorithmImpl::FRISVAD;
     }
-    return outAlgo;
+
+    // TODO: To complete integration with gltfio, we will need to change the resource loading flow
+    // because certain algorithms will remesh the input.
+
+    // if (isInputType(inputType, NORMALS_UVS_POSITIONS_INDICES)) {
+    //     return AlgorithmImpl::MIKKTSPACE;
+    // } else if (isInputType(inputType, NORMALS_TANGENTS)) {
+    //     return AlgorithmImpl::TANGENTS_PROVIDED;
+    // } else if (isInputType(inputType, POSITIONS_INDICES)) {
+    //     return AlgorithmImpl::FLAT_SHADING;
+    // } else {
+    //     ASSERT_PRECONDITION(inputType & NORMALS,
+    //             "Must at least have normals or (positions + indices) as input");
+    //     return AlgorithmImpl::FRISVAD;
+    // }
 }
 
-Algorithm selectAlgorithm(TangentSpaceMeshInput *input) noexcept {
+AlgorithmImpl selectAlgorithm(TangentSpaceMeshInput *input) noexcept {
     uint8_t inputType = 0;
     if (input->normals) {
         inputType |= NORMALS_BIT;
@@ -101,47 +133,38 @@ Algorithm selectAlgorithm(TangentSpaceMeshInput *input) noexcept {
     if (input->triangles32 || input->triangles16) {
         inputType |= INDICES_BIT;
     }
+    if (input->tangents) {
+        inputType |= TANGENTS_BIT;
+    }
 
-    bool foundAlgo = false;
-    Algorithm outAlgo = Algorithm::DEFAULT;
+    AlgorithmImpl outAlgo = AlgorithmImpl::INVALID;
     switch (input->algorithm) {
         case Algorithm::DEFAULT:
             outAlgo = selectBestDefaultAlgorithm(inputType);
-            foundAlgo = true;
             break;
         case Algorithm::MIKKTSPACE:
             if (isInputType(inputType, NORMALS_UVS_POSITIONS_INDICES)) {
-                outAlgo = Algorithm::MIKKTSPACE;
-                foundAlgo = true;
+                outAlgo = AlgorithmImpl::MIKKTSPACE;
             }
             break;
         case Algorithm::LENGYEL:
             if (isInputType(inputType, NORMALS_UVS_POSITIONS_INDICES)) {
-                outAlgo = Algorithm::LENGYEL;
-                foundAlgo = true;
+                outAlgo = AlgorithmImpl::LENGYEL;
             }
             break;
         case Algorithm::HUGHES_MOLLER:
             if (isInputType(inputType, NORMALS)) {
-                outAlgo = Algorithm::HUGHES_MOLLER;
-                foundAlgo = true;
+                outAlgo = AlgorithmImpl::HUGHES_MOLLER;
             }
             break;
         case Algorithm::FRISVAD:
             if (isInputType(inputType, NORMALS)) {
-                outAlgo = Algorithm::FRISVAD;
-                foundAlgo = true;
-            }
-            break;
-        case Algorithm::FLAT_SHADING:
-            if (isInputType(inputType, POSITIONS_INDICES)) {
-                outAlgo = Algorithm::FLAT_SHADING;
-                foundAlgo = true;
+                outAlgo = AlgorithmImpl::FRISVAD;
             }
             break;
     }
 
-    if (!foundAlgo) {
+    if (outAlgo == AlgorithmImpl::INVALID) {
         outAlgo = selectBestDefaultAlgorithm(inputType);
         utils::slog.w << "Cannot satisfy algorithm=" << to_string(input->algorithm)
             << ". Selected algorithm=" << to_string(outAlgo) << " instead"
@@ -173,7 +196,7 @@ void frisvadMethod(TangentSpaceMeshInput const* input, TangentSpaceMeshOutput* o
     quatf* quats = output->tangentSpace.allocate(vertexCount);
 
     float3 const* UTILS_RESTRICT normals = input->normals;
-    size_t nstride = input->normalStride ? input->normalStride : sizeof(float3);
+    size_t const nstride = input->normalStride ? input->normalStride : sizeof(float3);
 
     for (size_t qindex = 0; qindex < vertexCount; ++qindex) {
         float3 const n = *normals;
@@ -196,7 +219,7 @@ void hughesMollerMethod(TangentSpaceMeshInput const* input, TangentSpaceMeshOutp
     quatf* quats = output->tangentSpace.allocate(vertexCount);
 
     float3 const* UTILS_RESTRICT normals = input->normals;
-    size_t nstride = input->normalStride ? input->normalStride : sizeof(float3);
+    size_t const nstride = input->normalStride ? input->normalStride : sizeof(float3);
 
     for (size_t qindex = 0; qindex < vertexCount; ++qindex) {
         float3 const n = *normals;
@@ -278,6 +301,40 @@ void flatShadingMethod(TangentSpaceMeshInput const* input, TangentSpaceMeshOutpu
 
     output->vertexCount = outVertexCount;
     output->triangleCount = outTriangleCount;
+}
+
+void tangentsProvidedMethod(TangentSpaceMeshInput const* input, TangentSpaceMeshOutput* output)
+        noexcept {
+    size_t const vertexCount = input->vertexCount;
+    quatf* quats = output->tangentSpace.allocate(vertexCount);
+
+    float3 const* normal = input->normals;
+    size_t const nstride = input->normalStride ? input->normalStride : sizeof(float3);
+
+    float4 const* tanvec = input->tangents;
+    size_t const tstride = input->tangentStride ? input->tangentStride : sizeof(float4);
+
+    for (size_t qindex = 0; qindex < vertexCount; ++qindex) {
+        float3 const& n = *(normal + qindex * nstride);
+        float4 const& t4 = *(tanvec + qindex * tstride);
+        float3 tv = t4.xyz;
+        float3 b = t4.w > 0 ? cross(tv, n) : cross(n, tv);
+
+        // Some assets do not provide perfectly orthogonal tangents and normals, so we adjust the
+        // tangent to enforce orthonormality. We would rather honor the exact normal vector than
+        // the exact tangent vector since the latter is only used for bump mapping and anisotropic
+        // lighting.
+        tv = t4.w > 0 ? cross(n, b) : cross(b, n);
+
+        quats[qindex] = mat3f::packTangentFrame({tv, b, n});
+    }
+
+    output->vertexCount = vertexCount;
+    output->triangleCount = input->triangleCount;
+    output->uvs.borrow(input->uvs);
+    output->positions.borrow(input->positions);
+    output->triangles32.borrow(input->triangles32);
+    output->triangles16.borrow(input->triangles16);
 }
 
 void mikktspaceMethod(TangentSpaceMeshInput const* input, TangentSpaceMeshOutput* output) {
@@ -416,6 +473,12 @@ Builder& Builder::positions(float3 const* positions, size_t stride) noexcept {
     return *this;
 }
 
+Builder& Builder::tangents(float4 const* tangents, size_t stride) noexcept {
+    mMesh->mInput->tangents = tangents;
+    mMesh->mInput->tangentStride = stride;
+    return *this;
+}
+
 Builder& Builder::triangleCount(size_t triangleCount) noexcept {
     mMesh->mInput->triangleCount = triangleCount;
     return *this;
@@ -440,24 +503,26 @@ TangentSpaceMesh* Builder::build() {
     ASSERT_PRECONDITION(!mMesh->mInput->triangles32 || !mMesh->mInput->triangles16,
             "Cannot provide both uint32 triangles and uint16 triangles");
 
-    // Work in progress. Not for use.
     mMesh->mOutput->algorithm = selectAlgorithm(mMesh->mInput);
     MethodPtr method = nullptr;
     switch (mMesh->mOutput->algorithm) {
-        case Algorithm::MIKKTSPACE:
+        case AlgorithmImpl::MIKKTSPACE:
             method = mikktspaceMethod;
             break;
-        case Algorithm::LENGYEL:
+        case AlgorithmImpl::LENGYEL:
             method = lengyelMethod;
             break;
-        case Algorithm::HUGHES_MOLLER:
+        case AlgorithmImpl::HUGHES_MOLLER:
             method = hughesMollerMethod;
             break;
-        case Algorithm::FRISVAD:
+        case AlgorithmImpl::FRISVAD:
             method = frisvadMethod;
             break;
-        case Algorithm::FLAT_SHADING:
+        case AlgorithmImpl::FLAT_SHADING:
             method = flatShadingMethod;
+            break;
+        case AlgorithmImpl::TANGENTS_PROVIDED:
+            method = tangentsProvidedMethod;
             break;
         default:
             break;
@@ -590,8 +655,14 @@ void TangentSpaceMesh::getQuats(quath* out, size_t stride) const noexcept {
     }
 }
 
-Algorithm TangentSpaceMesh::getAlgorithm() const noexcept {
-    return mOutput->algorithm;
+bool TangentSpaceMesh::remeshed() const noexcept {
+    switch(mOutput->algorithm) {
+        case AlgorithmImpl::MIKKTSPACE:
+        case AlgorithmImpl::FLAT_SHADING:
+            return true;
+        default:
+            return false;
+    }
 }
 
 }

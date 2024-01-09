@@ -106,14 +106,6 @@ public:
          *     - http://people.compute.dtu.dk/jerf/code/hairy/
          */
         FRISVAD = 4,
-
-        /**
-         * Flat Shading
-         *
-         * **Requires**: `positions + indices` <br/>
-         * **Note**: Will remesh
-         */
-        FLAT_SHADING = 5
     };
 
     /**
@@ -315,9 +307,9 @@ public:
     void getTriangles(filament::math::ushort3* out) const;
 
     /**
-     * @return The algorithm used to compute the output mesh.
+     * @return Whether the TBN algorithm remeshed the input.
      */
-    Algorithm getAlgorithm() const noexcept;
+    bool remeshed() const noexcept;
 
 private:
     ~TangentSpaceMesh() noexcept;
