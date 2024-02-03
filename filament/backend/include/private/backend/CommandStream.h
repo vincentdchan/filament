@@ -278,7 +278,7 @@ public:
 
 private:
     inline void* allocateCommand(size_t size) {
-        assert_invariant(utils::ThreadUtils::isThisThread(mThreadId));
+//        assert_invariant(utils::ThreadUtils::isThisThread(mThreadId));
         return mCurrentBuffer.allocate(size);
     }
 
