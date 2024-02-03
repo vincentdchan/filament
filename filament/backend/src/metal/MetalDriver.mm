@@ -426,6 +426,11 @@ Handle<HwTexture> MetalDriver::createTextureSwizzledS() noexcept {
     return alloc_handle<MetalTexture>();
 }
 
+intptr_t MetalDriver::unwrapTexture(Handle<HwTexture> handle) {
+    MetalTexture* ptr = mHandleAllocator.handle_cast<MetalTexture*>(handle);
+    return reinterpret_cast<intptr_t>(ptr->getMtlTextureForWrite());
+}
+
 Handle<HwTexture> MetalDriver::importTextureS() noexcept {
     return alloc_handle<MetalTexture>();
 }

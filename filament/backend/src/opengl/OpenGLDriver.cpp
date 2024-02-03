@@ -756,6 +756,11 @@ void OpenGLDriver::createTextureR(Handle<HwTexture> th, SamplerType target, uint
     CHECK_GL_ERROR(utils::slog.e)
 }
 
+intptr_t OpenGLDriver::unwrapTexture(backend::TextureHandle handle) {
+    GLTexture* t = handle_cast<GLTexture*>(handle);
+    return t->gl.id;
+}
+
 void OpenGLDriver::createTextureSwizzledR(Handle<HwTexture> th,
         SamplerType target, uint8_t levels, TextureFormat format, uint8_t samples,
         uint32_t w, uint32_t h, uint32_t depth, TextureUsage usage,

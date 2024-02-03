@@ -498,6 +498,7 @@ public:
             PixelBufferDescriptor&& buffer, const FaceOffsets& faceOffsets,
             PrefilterOptions const* options = nullptr);
 
+    intptr_t unwrapTexture(Engine& engine);
 
     /** @deprecated */
     struct FaceOffsets {

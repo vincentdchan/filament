@@ -66,6 +66,8 @@ public:
 
     void generateMipmaps(FEngine& engine) const noexcept;
 
+    intptr_t unwrapTexture(FEngine& engine);
+
     void setSampleCount(size_t sampleCount) noexcept { mSampleCount = uint8_t(sampleCount); }
     size_t getSampleCount() const noexcept { return mSampleCount; }
     bool isMultisample() const noexcept { return mSampleCount > 1; }

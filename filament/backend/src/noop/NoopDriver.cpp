@@ -74,6 +74,10 @@ void NoopDriver::flush(int) {
 void NoopDriver::finish(int) {
 }
 
+intptr_t NoopDriver::unwrapTexture(backend::TextureHandle handle) {
+    return 0;
+}
+
 void NoopDriver::destroyRenderPrimitive(Handle<HwRenderPrimitive> rph) {
 }
 

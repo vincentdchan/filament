@@ -574,6 +574,11 @@ Handle<HwTexture> VulkanDriver::importTextureS() noexcept {
     return mResourceAllocator.allocHandle<VulkanTexture>();
 }
 
+intptr_t VulkanDriver::unwrapTexture(backend::TextureHandle handle) {
+    VulkanTexture* t = mResourceAllocator.handle_cast<VulkanTexture*>(handle);
+    return reinterpret_cast<intptr_t>(t->getVkImage());
+}
+
 Handle<HwSamplerGroup> VulkanDriver::createSamplerGroupS() noexcept {
     return mResourceAllocator.allocHandle<VulkanSamplerGroup>();
 }

@@ -138,39 +138,39 @@ void FilamentApp::run(const Config& config, SetupCallback setupCallback,
             .package(FILAMENTAPP_TRANSPARENTCOLOR_DATA, FILAMENTAPP_TRANSPARENTCOLOR_SIZE)
             .build(*mEngine);
 
-    std::unique_ptr<Cube> cameraCube(new Cube(*mEngine, mTransparentMaterial, {1,0,0}));
-    // we can't cull the light-frustum because it's not applied a rigid transform
-    // and currently, filament assumes that for culling
-    std::unique_ptr<Cube> lightmapCube(new Cube(*mEngine, mTransparentMaterial, {0,1,0}, false));
+//    std::unique_ptr<Cube> cameraCube(new Cube(*mEngine, mTransparentMaterial, {1,0,0}));
+//    // we can't cull the light-frustum because it's not applied a rigid transform
+//    // and currently, filament assumes that for culling
+//    std::unique_ptr<Cube> lightmapCube(new Cube(*mEngine, mTransparentMaterial, {0,1,0}, false));
     mScene = mEngine->createScene();
 
     window->mMainView->getView()->setVisibleLayers(0x4, 0x4);
 
-    if (config.splitView) {
-        auto& rcm = mEngine->getRenderableManager();
-
-        rcm.setLayerMask(rcm.getInstance(cameraCube->getSolidRenderable()), 0x3, 0x2);
-        rcm.setLayerMask(rcm.getInstance(cameraCube->getWireFrameRenderable()), 0x3, 0x2);
-
-        rcm.setLayerMask(rcm.getInstance(lightmapCube->getSolidRenderable()), 0x3, 0x2);
-        rcm.setLayerMask(rcm.getInstance(lightmapCube->getWireFrameRenderable()), 0x3, 0x2);
-
-        // Create the camera mesh
-        mScene->addEntity(cameraCube->getWireFrameRenderable());
-        mScene->addEntity(cameraCube->getSolidRenderable());
-
-        mScene->addEntity(lightmapCube->getWireFrameRenderable());
-        mScene->addEntity(lightmapCube->getSolidRenderable());
-
-        window->mDepthView->getView()->setVisibleLayers(0x4, 0x4);
-        window->mGodView->getView()->setVisibleLayers(0x6, 0x6);
-        window->mOrthoView->getView()->setVisibleLayers(0x6, 0x6);
-
-        // only preserve the color buffer for additional views; depth and stencil can be discarded.
-        window->mDepthView->getView()->setShadowingEnabled(false);
-        window->mGodView->getView()->setShadowingEnabled(false);
-        window->mOrthoView->getView()->setShadowingEnabled(false);
-    }
+//    if (config.splitView) {
+//        auto& rcm = mEngine->getRenderableManager();
+//
+//        rcm.setLayerMask(rcm.getInstance(cameraCube->getSolidRenderable()), 0x3, 0x2);
+//        rcm.setLayerMask(rcm.getInstance(cameraCube->getWireFrameRenderable()), 0x3, 0x2);
+//
+//        rcm.setLayerMask(rcm.getInstance(lightmapCube->getSolidRenderable()), 0x3, 0x2);
+//        rcm.setLayerMask(rcm.getInstance(lightmapCube->getWireFrameRenderable()), 0x3, 0x2);
+//
+//        // Create the camera mesh
+//        mScene->addEntity(cameraCube->getWireFrameRenderable());
+//        mScene->addEntity(cameraCube->getSolidRenderable());
+//
+//        mScene->addEntity(lightmapCube->getWireFrameRenderable());
+//        mScene->addEntity(lightmapCube->getSolidRenderable());
+//
+//        window->mDepthView->getView()->setVisibleLayers(0x4, 0x4);
+//        window->mGodView->getView()->setVisibleLayers(0x6, 0x6);
+//        window->mOrthoView->getView()->setVisibleLayers(0x6, 0x6);
+//
+//        // only preserve the color buffer for additional views; depth and stencil can be discarded.
+//        window->mDepthView->getView()->setShadowingEnabled(false);
+//        window->mGodView->getView()->setShadowingEnabled(false);
+//        window->mOrthoView->getView()->setShadowingEnabled(false);
+//    }
 
     loadDirt(config);
     loadIBL(config);
@@ -429,10 +429,10 @@ void FilamentApp::run(const Config& config, SetupCallback setupCallback,
         window->mDebugCameraMan->getLookAt(&eye, &center, &up);
         window->mDebugCamera->lookAt(eye, center, up);
 
-        // Update the cube distortion matrix used for frustum visualization.
-        const Camera* lightmapCamera = window->mMainView->getView()->getDirectionalLightCamera();
-        lightmapCube->mapFrustum(*mEngine, lightmapCamera);
-        cameraCube->mapFrustum(*mEngine, window->mMainCamera);
+//        // Update the cube distortion matrix used for frustum visualization.
+//        const Camera* lightmapCamera = window->mMainView->getView()->getDirectionalLightCamera();
+//        lightmapCube->mapFrustum(*mEngine, lightmapCamera);
+//        cameraCube->mapFrustum(*mEngine, window->mMainCamera);
 
         // Delay rendering for roughly one monitor refresh interval
         // TODO: Use SDL_GL_SetSwapInterval for proper vsync
@@ -476,8 +476,8 @@ void FilamentApp::run(const Config& config, SetupCallback setupCallback,
 
     cleanupCallback(mEngine, window->mMainView->getView(), mScene);
 
-    cameraCube.reset();
-    lightmapCube.reset();
+//    cameraCube.reset();
+//    lightmapCube.reset();
     window.reset();
 
     mIBL.reset();

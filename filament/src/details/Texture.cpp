@@ -620,6 +620,11 @@ void FTexture::generatePrefilterMipmap(FEngine& engine,
     // by the caller (without being move()d here).
 }
 
+intptr_t FTexture::unwrapTexture(filament::FEngine &engine) {
+    auto& driverApi = downcast(engine).getDriverApi();
+    return driverApi.unwrapTexture(mHandle);
+}
+
 bool FTexture::validatePixelFormatAndType(TextureFormat internalFormat,
         PixelDataFormat format, PixelDataType type) noexcept {
 
