@@ -92,4 +92,8 @@ void Texture::generatePrefilterMipmap(Engine& engine, Texture::PixelBufferDescri
     downcast(this)->generatePrefilterMipmap(downcast(engine), std::move(buffer), faceOffsets, options);
 }
 
+intptr_t Texture::unwrapTexture(filament::Engine &engine) {
+    return downcast(this)->unwrapTexture(downcast(engine));
+}
+
 } // namespace filament

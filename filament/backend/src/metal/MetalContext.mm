@@ -23,6 +23,9 @@
 
 #include <utility>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 namespace filament {
 namespace backend {
 
@@ -155,3 +158,5 @@ bool isInRenderPass(MetalContext* context) {
 
 } // namespace backend
 } // namespace filament
+
+#pragma clang diagnostic pop

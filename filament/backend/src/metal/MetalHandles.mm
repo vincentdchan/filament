@@ -35,6 +35,9 @@
 
 #include <math.h>
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 namespace filament {
 namespace backend {
 
@@ -1264,3 +1267,5 @@ FenceStatus MetalFence::wait(uint64_t timeoutNs) {
 
 } // namespace backend
 } // namespace filament
+
+#pragma clang diagnostic pop

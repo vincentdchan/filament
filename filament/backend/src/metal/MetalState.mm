@@ -18,6 +18,9 @@
 
 #include "MetalEnums.h"
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wdeprecated-declarations"
+
 namespace filament {
 namespace backend {
 
@@ -190,3 +193,5 @@ id<MTLArgumentEncoder> ArgumentEncoderCreator::operator()(id<MTLDevice> device,
 
 } // namespace backend
 } // namespace filament
+
+#pragma clang diagnostic pop
